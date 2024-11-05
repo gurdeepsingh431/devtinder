@@ -86,12 +86,18 @@ app.delete("/user", async (req, res) => {
 
 app.patch("/user", async (req, res) => {
   try {
-    const updateUserData = await User.findByIdAndUpdate(req.body.id, {
-      lastName: "Singh",
-    });
+    const updateUserData = await User.findByIdAndUpdate(
+      req.body.id,
+      {
+        lastName: "Singh",
+      },
+      { runValidators: true }
+    );
     res.send("User details updated successfully.");
   } catch (err) {
-    res.status(400).send("Something went wrong while updating user details!");
+    res
+      .status(400)
+      .send("Something went wrong while updating user details!" + err);
   }
 });
 connectDB()
