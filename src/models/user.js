@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const validator = require("validator");
 const userSchema = new mongoose.Schema(
   {
     firstName: {
@@ -32,17 +33,31 @@ const userSchema = new mongoose.Schema(
       lowercase: true,
       trim: true,
       unique: true,
+      validate(value) {
+        if (!validator.isEmail(value)) {
+          throw new Error("Invalid Username/Email: " + value);
+        }
+      },
     },
     password: {
       type: String,
       required: true,
       minLength: 6,
-      maxLength: 12,
+      validate(value) {
+        if (!validator.isStrongPassword(value)) {
+          throw new Error("Please Enter a strong password.");
+        }
+      },
     },
     photoURL: {
       type: String,
       default:
         "https://www.flaticon.com/free-icon/user_660611?related_id=149452&origin=search",
+      validate(value) {
+        if (!validator.isURL(value)) {
+          throw new Error("Invalid photo Url.");
+        }
+      },
     },
   },
   { timestamps: true }

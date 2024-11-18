@@ -3,6 +3,8 @@ const app = express();
 const { connectDB } = require("./config/database");
 const { adminAuth, userAuth } = require("./middlewares/auth");
 const { User } = require("./models/user");
+const { signUpValidator } = require("./utils/validation");
+const bcrypt = require("bcrypt");
 
 // app.use("/admin", adminAuth);
 // app.get("/admin/getAdminData", (req, res) => {
@@ -36,13 +38,44 @@ const { User } = require("./models/user");
 // });
 app.use(express.json());
 
-app.post("/signup", async (req, res) => {
-  const user = new User(req.body);
+app.post("/login", async (req, res) => {
   try {
+    const { userName, password } = req.body;
+    const getUser = await User.findOne({ userName });
+    console.log(getUser);
+    if (!getUser) {
+      throw new Error("Invalid credentials");
+    }
+    const isCorrectPassword = await bcrypt.compare(password, getUser.password);
+    if (!isCorrectPassword) {
+      throw new Error("Invalid credentials");
+    } else {
+      res.send("You have logged in!");
+    }
+  } catch (err) {
+    res.status(400).send("Something wrong: " + err.message);
+  }
+});
+app.post("/signup", async (req, res) => {
+  try {
+    signUpValidator(req.body);
+    const { firstName, lastName, age, gender, userName, password } = req.body;
+    const passwordHash = await bcrypt.hash(password, 10);
+
+    const transformedUser = {
+      firstName: firstName,
+      lastName: lastName,
+      age: age,
+      gender: gender,
+      userName: userName,
+      password: passwordHash,
+    };
+    const user = new User(transformedUser);
+
     await user.save();
     res.send("User saved successfully");
   } catch (err) {
-    res.status(400).send("Error while creating user:" + err.message);
+    res.status(400).send("Error while creating user: " + err.message);
   }
 });
 
@@ -84,15 +117,13 @@ app.delete("/user", async (req, res) => {
   }
 });
 
-app.patch("/user", async (req, res) => {
+app.patch("/user/:id", async (req, res) => {
   try {
-    const updateUserData = await User.findByIdAndUpdate(
-      req.body.id,
-      {
-        lastName: "Singh",
-      },
-      { runValidators: true }
-    );
+    const id = req?.params?.id;
+    const body = req.body;
+    const updateUserData = await User.findByIdAndUpdate(id, body, {
+      runValidators: true,
+    });
     res.send("User details updated successfully.");
   } catch (err) {
     res
