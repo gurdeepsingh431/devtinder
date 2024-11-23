@@ -5,7 +5,8 @@ const { adminAuth, userAuth } = require("./middlewares/auth");
 const { User } = require("./models/user");
 const { signUpValidator } = require("./utils/validation");
 const bcrypt = require("bcrypt");
-
+const cookieParser = require("cookie-parser");
+const jwt = require("jsonwebtoken");
 // app.use("/admin", adminAuth);
 // app.get("/admin/getAdminData", (req, res) => {
 //   // Code to fetch admin data
@@ -37,12 +38,14 @@ const bcrypt = require("bcrypt");
 //   res.send("Data deleted successfully");
 // });
 app.use(express.json());
+app.use(cookieParser());
 
 app.post("/login", async (req, res) => {
   try {
     const { userName, password } = req.body;
     const getUser = await User.findOne({ userName });
-    console.log(getUser);
+    const token = jwt.sign({ _id: getUser.id }, "Dev$tinder@6970");
+
     if (!getUser) {
       throw new Error("Invalid credentials");
     }
@@ -50,12 +53,26 @@ app.post("/login", async (req, res) => {
     if (!isCorrectPassword) {
       throw new Error("Invalid credentials");
     } else {
+      res.cookie("token", token);
       res.send("You have logged in!");
     }
   } catch (err) {
     res.status(400).send("Something wrong: " + err.message);
   }
 });
+app.get("/profile", async (req, res) => {
+  try {
+    const { token } = req.cookies;
+    const decodedValue = jwt.verify(token, "Dev$tinder@6970");
+    const { _id } = decodedValue;
+
+    const getUserById = await User.findById(_id);
+    res.send(getUserById);
+  } catch (err) {
+    res.status(400).send("Error while getting profile: " + err.message);
+  }
+});
+
 app.post("/signup", async (req, res) => {
   try {
     signUpValidator(req.body);
